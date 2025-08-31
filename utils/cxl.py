@@ -1,3 +1,4 @@
+import os;
 import utils.tools as tools
 import psutil;
 
@@ -70,6 +71,38 @@ FM_DCD="-object memory-backend-file,id=cxl-mem1,mem-path=/tmp/t3_cxl1.raw,size=2
  -device i2c_mctp_cxl,bus=aspeed.i2c.bus.0,address=6,target=cxl-dcd0 \
  -device virtio-rng-pci,bus=swport1"
 
+FM_TARGET="-object memory-backend-file,id=cxl-mem2,mem-path=/tmp/t3_cxl2.raw,size=4G \
+ -object memory-backend-file,id=cxl-lsa2,mem-path=/tmp/t3_lsa2.raw,size=1M \
+ -device pxb-cxl,bus_nr=12,bus=pcie.0,id=cxl.1,hdm_for_passthrough=true \
+ -device cxl-rp,port=0,bus=cxl.1,id=cxl_rp_port0,chassis=0,slot=2 \
+ -device cxl-upstream,port=2,sn=1234,bus=cxl_rp_port0,id=us0,addr=0.0,multifunction=on, \
+ -device cxl-switch-mailbox-cci,bus=cxl_rp_port0,addr=0.1,target=us0 \
+ -device cxl-downstream,port=0,bus=us0,id=swport0,chassis=0,slot=4 \
+ -device cxl-downstream,port=1,bus=us0,id=swport1,chassis=0,slot=5 \
+ -device cxl-downstream,port=3,bus=us0,id=swport2,chassis=0,slot=6 \
+ -device cxl-type3,bus=swport2,volatile-dc-memdev=cxl-mem2,id=cxl-dcd0,lsa=cxl-lsa2,num-dc-regions=1,sn=99,allow-fm-attach=on,mctp-buf-init=on \
+ -machine cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=1k \
+ -device i2c_mctp_cxl,bus=aspeed.i2c.bus.0,address=4,target=us0 \
+ -device i2c_mctp_cxl,bus=aspeed.i2c.bus.0,address=6,target=cxl-dcd0 \
+ -device virtio-rng-pci,bus=swport1"
+
+FM_CLIENT="-object memory-backend-file,id=cxl-mem2,mem-path=/tmp/t3_cxl2.raw,size=4G \
+ -object memory-backend-file,id=cxl-lsa2,mem-path=/tmp/t3_lsa2.raw,size=1M \
+ -device pxb-cxl,bus_nr=12,bus=pcie.0,id=cxl.1,hdm_for_passthrough=true \
+ -device cxl-rp,port=0,bus=cxl.1,id=cxl_rp_port0,chassis=0,slot=2 \
+ -device cxl-upstream,port=2,sn=1234,bus=cxl_rp_port0,id=us0,addr=0.0,multifunction=on, \
+ -device cxl-switch-mailbox-cci,bus=cxl_rp_port0,addr=0.1,target=us0 \
+ -device cxl-downstream,port=0,bus=us0,id=swport0,chassis=0,slot=4 \
+ -device cxl-downstream,port=1,bus=us0,id=swport1,chassis=0,slot=5 \
+ -device cxl-downstream,port=3,bus=us0,id=swport2,chassis=0,slot=6 \
+ -device cxl-type3,bus=swport2,volatile-dc-memdev=cxl-mem2,id=cxl-dcd0,lsa=cxl-lsa2,num-dc-regions=1,sn=99,allow-fm-attach=on \
+ -machine cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=1k \
+ -device i2c_mctp_cxl,bus=aspeed.i2c.bus.0,address=4,target=us0 \
+ -device i2c_mctp_cxl,bus=aspeed.i2c.bus.0,address=6,target=cxl-dcd0,qmp=127.0.0.1:4445,mctp-msg-forward=on \
+ -device virtio-rng-pci,bus=swport1"
+
+
+
 SW="-object memory-backend-file,id=cxl-mem0,share=on,mem-path=/tmp/cxltest.raw,size=512M \
     -object memory-backend-file,id=cxl-mem1,share=on,mem-path=/tmp/cxltest1.raw,size=512M \
     -object memory-backend-file,id=cxl-mem2,share=on,mem-path=/tmp/cxltest2.raw,size=512M \
@@ -92,18 +125,38 @@ SW="-object memory-backend-file,id=cxl-mem0,share=on,mem-path=/tmp/cxltest.raw,s
     -device cxl-type3,bus=swport3,memdev=cxl-mem3,lsa=cxl-lsa3,id=cxl-pmem3 \
     -M cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=4k"
 
+FM_USB="-object memory-backend-file,id=cxl-mem1,mem-path=/tmp/t3_cxl1.raw,size=256M \
+ -object memory-backend-file,id=cxl-lsa1,mem-path=/tmp/t3_lsa1.raw,size=1M \
+ -object memory-backend-file,id=cxl-mem2,mem-path=/tmp/t3_cxl2.raw,size=4G \
+ -object memory-backend-file,id=cxl-lsa2,mem-path=/tmp/t3_lsa2.raw,size=1M \
+ -device usb-ehci,id=ehci \
+ -device pxb-cxl,bus_nr=12,bus=pcie.0,id=cxl.1,hdm_for_passthrough=true \
+ -device cxl-rp,port=0,bus=cxl.1,id=cxl_rp_port0,chassis=0,slot=2 \
+ -device cxl-upstream,port=2,sn=1234,bus=cxl_rp_port0,id=us0,addr=0.0,multifunction=on, \
+ -device cxl-switch-mailbox-cci,bus=cxl_rp_port0,addr=0.1,target=us0 \
+ -device cxl-downstream,port=0,bus=us0,id=swport0,chassis=0,slot=4 \
+ -device cxl-downstream,port=1,bus=us0,id=swport1,chassis=0,slot=5 \
+ -device cxl-downstream,port=3,bus=us0,id=swport2,chassis=0,slot=6 \
+ -device cxl-type3,bus=swport0,memdev=cxl-mem1,id=cxl-pmem1,lsa=cxl-lsa1,sn=3 \
+ -device cxl-type3,bus=swport2,volatile-dc-memdev=cxl-mem2,id=cxl-dcd0,lsa=cxl-lsa2,num-dc-regions=2,sn=99 \
+ -machine cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=1k \
+ -device virtio-rng-pci,bus=swport1 \
+ -device usb-cxl-mctp,bus=ehci.0,id=usb1,target=us0 \
+ -device usb-cxl-mctp,bus=ehci.0,id=usb2,target=cxl-pmem1"
+
+
+topos = {
+    "RP1": RP1,
+    "FM": FM,
+    "FM_CLIENT": FM_CLIENT,
+    "FM_TARGET": FM_TARGET,
+    "SW": SW,
+    "FM_USB": FM_USB
+}
 
 def find_topology(top):
-    if top.upper() == "RP1":
-        return RP1
-    elif top.upper() == "FM":
-        return FM
-    elif top.upper() == "FM_DCD":
-        return FM_DCD
-    elif top.upper() == "SW":
-        return SW
-    else:
-        return ""
+    topo = topos.get(top.upper(), "")
+    return topo
 
 def load_driver(host="localhost"):
     user = tools.system_env("vm_usr")
@@ -145,6 +198,8 @@ def device_is_active(memdev):
     cmd="cxl list -i -m %s"%memdev
     rs=tools.execute_on_vm(cmd)
     data = tools.output_to_json_data(rs)
+    if not data:
+        return False;
     for key in data[0].keys():
         if key == "state":
             if data[0][key] == "disabled":
@@ -185,7 +240,7 @@ def find_cmdline_device_id(memdev):
             continue;
 
 def find_mode(memdev):
-    file=tools.system_path("cxl_test_log_dir")+"/tmp.json"
+    # file=tools.system_path("cxl_test_log_dir")+"/tmp.json"
     rs=tools.execute_on_vm("cxl list -i -m %s"%memdev)
     data=tools.output_to_json_data(rs)
     if not data:
@@ -196,7 +251,7 @@ def find_mode(memdev):
     return "dc0"
 
 def memdev_size(memdev):
-    file=tools.system_path("cxl_test_log_dir")+"/tmp.json"
+    # file=tools.system_path("cxl_test_log_dir")+"/tmp.json"
     rs=tools.execute_on_vm("cxl list -i -m %s"%memdev)
     data=tools.output_to_json_data(rs)
     if not data:
@@ -267,14 +322,9 @@ def create_region(memdev):
     print("# "+cmd)
     output=tools.execute_on_vm(cmd)
     print(output)
-
-    tools.write_to_file(file, output)
-    with open(file, "r") as f:
-        for line in f:
-            if "\"region\"" in line:
-                rs = line.split(":")[1].replace(",", "").strip()
-                return rs
-        return ""
+    region_info = tools.output_to_json_data(output)
+    region = region_info.get("region", "")
+    return region
 
 def destroy_region(region):
     if not region:
@@ -305,7 +355,7 @@ def create_namespace(region):
                 break
             if "\"dev\":" in line:
                 ns = line.split(":")[1].replace(",", "").strip()
-                
+
         return ns,dax
 
 def destroy_namespace(ns):
@@ -353,17 +403,41 @@ def create_dc_region(memdev):
     if not memdev:
         return ""
 
+    if not cxl_driver_loaded():
+        print("Load cxl drivers")
+        load_driver();
+
+    region=region_exists_for_device(memdev)
+    if region:
+        print("%s already created for %s, exit"%(region, memdev))
+        return region
+
     if not device_is_active(memdev):
         enable_memdev(memdev)
 
     mode=find_mode(memdev)
-    if not mode.startswith("dc"):
+    if not mode.startswith("dc") and not mode.startswith("dynamic"):
         print("%s is not DCD device, skip"%memdev)
         return ""
 
     region=region_exists_for_device(memdev)
     if region:
         print("%s already created for %s, return directly"%(region, memdev))
+        return region
+
+    # This is from the last kernel code, for creating region, we use
+    #  cxl create-region -m mem0 -d decoder0.0 -s 4G -t dynamic_ram_a
+    if mode.startswith("dynamic"):
+        size=memdev_size(memdev)
+        cmd = "cxl create-region -m mem0 -d decoder0.0 -s %s -t %s"%(size,
+                                                                     os.getenv("dc_mode"))
+        rs = tools.execute_on_vm(cmd)
+        print(rs)
+        region_info = tools.output_to_json_data(rs)
+        if region_info:
+            region = region_info.get("region", "")
+        else:
+            region = ""
         return region
 
     num=find_endpoint_num(memdev)

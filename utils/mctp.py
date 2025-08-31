@@ -23,12 +23,37 @@ def install_mctp_pkg():
     tools.execute_on_vm("cd %s; cp conf/mctpd-dbus.conf /etc/dbus-1/system.d/"%mctp_dir, echo=True)
     tools.execute_on_vm("cd %s; cat conf/mctpd.service | sed 's/sbin/local\\/sbin/' > /etc/systemd/system/mctpd.service"%mctp_dir, echo=True)
 
+# this is from mctp over usb setup
+def install_mctp_pkg_usb():
+    url="https://github.com/CodeConstruct/mctp.git"
+    mctp_dir="/tmp/mctp"
+    
+    if not tools.command_found_on_vm("mctp"):
+        tools.install_packages_on_vm("libsystemd-dev python3-pytest meson")
+    else:
+        if tools.path_exist_on_vm("/etc/systemd/system/mctpd.service"):
+            print("mctpd service already configured, skip")
+            return
+
+    print("install mctp program")
+    if not tools.path_exist_on_vm(mctp_dir):
+        tools.execute_on_vm("git clone %s %s"%(url, mctp_dir), echo=True)
+
+    tools.execute_on_vm("cd %s; meson setup obj; ninja -C obj; meson install -C obj"%mctp_dir, echo=True)
+    tools.execute_on_vm("cd %s; cp conf/mctpd-dbus.conf /etc/dbus-1/system.d/"%mctp_dir, echo=True)
+    tools.execute_on_vm("cd %s; cat conf/mctpd.service | sed 's/sbin/local\\/sbin/' > /etc/systemd/system/mctpd.service"%mctp_dir, echo=True)
+
+
 
 def mctp_setup(mctp_sh):
+    print(mctp_sh)
     if not tools.vm_is_running():
         print("VM is not running")
         return
-    install_mctp_pkg()
+    if "usb" in mctp_sh:
+        install_mctp_pkg_usb()
+    else:
+        install_mctp_pkg()
     remote_file="/tmp/mctp-setup.sh"
     tools.copy_to_remote(mctp_sh, dst=remote_file)
     tools.execute_on_vm("bash %s"%remote_file, echo=True)
@@ -46,7 +71,7 @@ def try_fmapi_test():
     cmd="cd %s; ./cxl-mctp-test 8; ./cxl-mctp-test 9; ./cxl-mctp-test 10"%test_dir
     tools.execute_on_vm(cmd, echo=True)
 
-def prepare_fm_test(topo="FM"):
+def prepare_fm_test(topo="FM", qemu_dir=""):
     url="https://github.com/torvalds/linux"
     branch="v6.6-rc6"
     dire=os.path.expanduser("~/cxl/linux-%s"%branch)
@@ -68,12 +93,13 @@ def prepare_fm_test(topo="FM"):
     else:
         print("mctp patches already applied, continue...")
 
-    qemu_dir = os.path.expanduser("~/cxl/qemu-mctp")
-    url="https://gitlab.com/jic23/qemu.git"
-    branch="cxl-2024-08-20"
-    tools.setup_qemu(url=url, branch=branch, qemu_dir=qemu_dir, reconfig=False)
+    if not qemu_dir:
+        qemu_dir = os.path.expanduser("~/cxl/qemu-mctp")
+        url="https://gitlab.com/jic23/qemu.git"
+        branch="cxl-2024-08-20"
+        tools.setup_qemu(url=url, branch=branch, qemu_dir=qemu_dir, reconfig=True)
 
-    QEMU=qemu_dir+"/build/qemu-system-x86_64"                                   
+    QEMU=qemu_dir+"/build/qemu-system-x86_64"
     #qpatch=test_dir+"/test-workflows/mctp/mctp-patches-qemu.patch"
     #cmd="cd %s; git am --reject %s"%(qemu_dir, qpatch)
     #tools.sh_cmd(cmd, echo=True)
@@ -124,6 +150,28 @@ def run_libcxlmi_test(url="https://github.com/moking/libcxlmi.git", branch="main
 
     cmd = "cd %s; ./build/examples/cxl-mctp"%target_dir
     tools.execute_on_vm(cmd, echo=True)
+
+def setup_kernel(kernel_dir):
+    url="https://github.com/torvalds/linux"
+    branch="v6.6-rc6"
+    dire=os.path.expanduser("~/cxl/linux-%s"%branch)
+    os.environ["KERNEL_ROOT"]=dire
+    test_dir=tools.system_path("cxl_test_tool_dir")
+    kconfig=test_dir+"/test-workflows/mctp/kernel.config"
+    tools.setup_kernel(url=url, branch=branch, kernel_dir=dire, kconfig=kconfig)
+
+    key="i2c-aspeed"
+    cmd="cd %s; git log -n 1 | grep -c %s"%(dire, key)
+    if tools.sh_cmd(cmd) == "0":
+        print("Apply mctp patches ...")
+        kpatch=test_dir+"/test-workflows/mctp/mctp-patches-kernel.patch"
+        cmd="cd %s; git am --reject %s"%(dire, kpatch)
+        tools.sh_cmd(cmd, echo=True)
+        tools.build_kernel(dire, install = False)
+    else:
+        print("mctp patches already applied, continue...")
+
+    print("Set FM_KERNEL_ROOT to %s in .vars.config"%dire)
 
 def setup_vm_for_mctp(kernel="~/cxl/linux-v6.6-rc6", qemu_dir="~/cxl/qemu-mctp"):
     print("Setup VM for MCTP")
