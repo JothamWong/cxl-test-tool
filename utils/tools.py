@@ -568,7 +568,7 @@ def run_qemu(qemu, topo, kernel, accel_mode=accel_mode, run_direct=False, qemu_i
             " -monitor telnet:127.0.0.1:%s,server,"%monitor_port+wait_flag+\
             " -drive file="+qemu_img+",index=0,media=disk,format="+format+\
             " -machine q35,cxl=on -cpu qemu64,mce=on -m 8G,maxmem=64G,slots=8 "+ \
-            " -virtfs local,path=/opt/lib/modules,mount_tag=modshare,security_model=mapped "+\
+            " -virtfs local,path=/lib/modules,mount_tag=modshare,security_model=mapped "+\
             " -virtfs local,path=%s"%home+",mount_tag=homeshare,security_model=mapped "+ topo
 
     write_to_file("%s/run-cmd%d"%(log_dir, port_offset), bin+cmd)
