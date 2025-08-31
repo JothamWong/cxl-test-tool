@@ -74,7 +74,7 @@ def try_fmapi_test():
 def prepare_fm_test(topo="FM", qemu_dir=""):
     url="https://github.com/torvalds/linux"
     branch="v6.6-rc6"
-    dire=os.path.expanduser("~/cxl/linux-%s"%branch)
+    dire=os.path.expanduser("/local/jotham/cxl/linux-%s"%branch)
 
     os.environ["KERNEL_ROOT"]=dire
 
@@ -110,8 +110,9 @@ def prepare_fm_test(topo="FM", qemu_dir=""):
 
 def run_fm_test():
     dcd, mctp = tools.run_with_dcd_mctp()
+    d = os.environ["QEMU_ROOT"]
     if not mctp:
-        prepare_fm_test()
+        prepare_fm_test(qemu_dir=d)
     try_fmapi_test()
 
 def install_libcxlmi(url="https://github.com/moking/libcxlmi.git", branch="main", target_dir="/tmp/libcxlmi"):
