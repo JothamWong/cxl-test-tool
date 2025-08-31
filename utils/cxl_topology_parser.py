@@ -15,7 +15,7 @@ num_hb_found=0
 
 serial=0xf00
 
-def create_object(name, size="512M", path="/tmp"):
+def create_object(name, size="512M", path="/tmp", extra_opt=""):
     return name, "-object memory-backend-file,id=%s,share=on,mem-path=%s/%s.raw,size=%s "%(name,path,name,size)
 
 def create_cxl_bus():
