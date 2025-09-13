@@ -59,16 +59,16 @@ def mctp_setup(mctp_sh):
     tools.execute_on_vm("bash %s"%remote_file, echo=True)
 
 def try_fmapi_test():
-    url="https://github.com/moking/cxl-fmapi-tests-clone.git"
-    test_dir="/tmp/fmapi-test"
+    url="https://github.com/JothamWong/cxl-mctp-testy.git"
+    test_dir="/tmp/fmapi-testy"
     if not tools.vm_is_running():
         print("VM is not running")
         return
     if not tools.path_exist_on_vm(test_dir):
         tools.execute_on_vm("git clone %s %s"%(url, test_dir))
-    cmd="cd %s; gcc cxl-mctp-test.c -o cxl-mctp-test"%test_dir
+    cmd="cd %s; make"%test_dir
     tools.execute_on_vm(cmd, echo=True)
-    cmd="cd %s; ./cxl-mctp-test 8; ./cxl-mctp-test 9; ./cxl-mctp-test 10"%test_dir
+    cmd="cd %s; ./test 8"%test_dir
     tools.execute_on_vm(cmd, echo=True)
 
 def prepare_fm_test(topo="FM", qemu_dir=""):
@@ -111,6 +111,7 @@ def prepare_fm_test(topo="FM", qemu_dir=""):
 def run_fm_test():
     dcd, mctp = tools.run_with_dcd_mctp()
     d = os.environ["QEMU_ROOT"]
+    print("Is mctp: " + str(mctp))
     if not mctp:
         prepare_fm_test(qemu_dir=d)
     try_fmapi_test()
@@ -155,7 +156,7 @@ def run_libcxlmi_test(url="https://github.com/moking/libcxlmi.git", branch="main
 def setup_kernel(kernel_dir):
     url="https://github.com/torvalds/linux"
     branch="v6.6-rc6"
-    dire=os.path.expanduser("~/cxl/linux-%s"%branch)
+    dire=os.path.expanduser("/local/jotham/cxl/linux-%s"%branch)
     os.environ["KERNEL_ROOT"]=dire
     test_dir=tools.system_path("cxl_test_tool_dir")
     kconfig=test_dir+"/test-workflows/mctp/kernel.config"
